@@ -1,0 +1,34 @@
+{
+  "tables": {
+    "welcome": { "rare": 60, "epic": 30, "legendary": 10 },
+    "common": { "common": 70, "rare": 22, "epic": 7, "legendary": 1 },
+    "event": { "common": 10, "rare": 50, "epic": 30, "legendary": 10 }
+  },
+  "counts": { "welcome": 3, "common": 1, "event": 2 },
+  "items": {
+    "weapon": {
+      "common": ["Palo afilado", "Honda de tirachinas", "Cuchillo oxidado"],
+      "rare": ["Espada de hierro", "Arco de caza", "Hacha de leñador"],
+      "epic": ["Lanza de tormenta", "Ballesta rúnica", "Maza de fuego"],
+      "legendary": ["Espada del alba", "Arco del dragón", "Martillo del trueno"]
+    },
+    "armor": {
+      "common": ["Gorro de lana", "Chaleco de cuero", "Botas gastadas"],
+      "rare": ["Casco de hierro", "Peto reforzado", "Escudo de roble"],
+      "epic": ["Armadura de escamas", "Escudo espejo", "Capa sombría"],
+      "legendary": ["Coraza solar", "Escudo del titán", "Yelmo del fénix"]
+    },
+    "consumable": {
+      "common": ["Manzana jugosa", "Venda de tela", "Pan duro"],
+      "rare": ["Poción menor", "Elixir de vigor", "Ración del cazador"],
+      "epic": ["Poción mayor", "Elixir de furia", "Pergamino de escudo"],
+      "legendary": ["Poción de resurrección", "Néctar dorado", "Pergamino de eclipse"]
+    },
+    "decor": {
+      "common": ["Maceta con flor", "Alfombra simple", "Farol de papel"],
+      "rare": ["Estatua de piedra", "Bandera de clan", "Fuente pequeña"],
+      "epic": ["Jardín flotante", "Torre de vigía", "Portal decorativo"],
+      "legendary": ["Árbol de cristal", "Trono de nubes", "Cascada eterna"]
+    }
+  }
+}
