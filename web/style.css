@@ -1,0 +1,4 @@
+html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; overflow: hidden; }
+#world { position: fixed; inset: 0; }
+.label { position: absolute; left: 0; top: 0; pointer-events: none; color: #fff; font-size: 12px; font-weight: 600;
+  text-shadow: 0 1px 3px #000; white-space: nowrap; }
