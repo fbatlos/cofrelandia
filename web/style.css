@@ -2,3 +2,23 @@ html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; overfl
 #world { position: fixed; inset: 0; }
 .label { position: absolute; left: 0; top: 0; pointer-events: none; color: #fff; font-size: 12px; font-weight: 600;
   text-shadow: 0 1px 3px #000; white-space: nowrap; }
+.bar { position: fixed; top: 0; left: 0; right: 0; display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: rgba(20,24,38,.85); color: #fff; }
+.bar strong { flex: 1; }
+button { border: 0; border-radius: 8px; padding: 8px 12px; background: #f59e0b; font-weight: 700; cursor: pointer; }
+button:disabled { opacity: .4; }
+.hidden { display: none !important; }
+.panel { position: fixed; right: 8px; top: 56px; width: min(320px, calc(100vw - 16px)); max-height: calc(100vh - 72px); overflow: auto; background: rgba(20,24,38,.92); color: #fff; padding: 12px; border-radius: 12px; }
+.panel > button:first-child { float: right; }
+.life { height: 10px; background: #3b1d1d; border-radius: 6px; overflow: hidden; }
+.lifefill { height: 100%; background: #ef4444; }
+.inv, .drops { display: flex; flex-wrap: wrap; gap: 6px; }
+.item, .drop { border: 2px solid; border-radius: 8px; padding: 3px 8px; font-size: 13px; }
+.stage { text-align: center; min-height: 20px; margin: 8px 0; }
+.chest { font-size: 56px; }
+.shake { animation: shake .3s infinite; }
+@keyframes shake { 0%,100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: grid; place-items: center; }
+.card { background: #fff; padding: 20px; border-radius: 14px; width: min(360px, 90vw); display: grid; gap: 10px; }
+.card input { padding: 10px; font-size: 16px; border: 2px solid #ccc; border-radius: 8px; }
+.bigcode { font-size: 32px; font-weight: 800; letter-spacing: 2px; text-align: center; background: #fef3c7; padding: 10px; border-radius: 10px; }
+.hint { color: #666; font-size: 13px; }
