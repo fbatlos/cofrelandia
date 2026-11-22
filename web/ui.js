@@ -33,11 +33,11 @@ export function mountUi(root, { world, getState }) {
       out.replaceChildren();
       if (!u) return;
       localStorage.setItem('pueblo:user', u);
-      const exists = getState().players[u];
+      const exists = Object.hasOwn(getState().players, u);
       out.append(
         el('p', { textContent: exists ? '¡Ya tienes casa!' : 'Comenta este código en cualquier vídeo:' }),
         el('div', { className: 'bigcode', textContent: codeFor(u) }),
-        el('p', { className: 'hint', textContent: 'Tu casa aparece en unos minutos. Después, cada comentario te da un cofre.' }),
+        el('p', { className: 'hint', textContent: 'Comenta directamente en el vídeo (no como respuesta a otro comentario). Tu casa aparece en unos minutos y después cada comentario te da un cofre.' }),
       );
     };
     input.addEventListener('input', update);
@@ -63,7 +63,7 @@ export function mountUi(root, { world, getState }) {
   }
 
   function showPlayer(username) {
-    const p = getState().players[username];
+    const p = Object.hasOwn(getState().players, username) ? getState().players[username] : null;
     if (!p) return null;
     const inv = Object.entries(p.inventory)
       .map(([id, n]) => ({ ...itemById(id), n }))
@@ -77,7 +77,7 @@ export function mountUi(root, { world, getState }) {
     panel.replaceChildren(
       close,
       el('h3', { textContent: `@${username}` }),
-      el('div', { className: 'life' }, el('div', { className: 'lifefill', style: `width:${p.life}%` })),
+      el('div', { className: 'life' }, el('div', { className: 'lifefill', style: `width:${Math.max(0, Math.min(100, Number(p.life) || 0))}%` })),
       el('p', { textContent: `Vida ${p.life}/100` }),
       el('p', { textContent: Object.entries(p.chests).map(([t, n]) => `${CHEST_LABEL[t]}: ${n}`).join(' · ') }),
       replay,
@@ -93,7 +93,7 @@ export function mountUi(root, { world, getState }) {
 
   myBtn.onclick = () => {
     const u = me();
-    if (u && getState().players[u]) {
+    if (u && Object.hasOwn(getState().players, u)) {
       world.focus(u);
       showPlayer(u);
     } else showRegister();
@@ -103,7 +103,7 @@ export function mountUi(root, { world, getState }) {
 
   // First visit of a registered player: replay their welcome chest.
   const u = me();
-  if (u && getState().players[u] && !localStorage.getItem(`pueblo:seen:${u}`)) {
+  if (u && Object.hasOwn(getState().players, u) && !localStorage.getItem(`pueblo:seen:${u}`)) {
     localStorage.setItem(`pueblo:seen:${u}`, '1');
     world.focus(u);
     const r = showPlayer(u);

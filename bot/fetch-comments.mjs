@@ -5,14 +5,13 @@ const ENDPOINT = 'https://www.tikwm.com/api/comment/list';
 const PAGE_SIZE = 50;
 const MAX_PAGES = 20;
 
-/** Map one raw tikwm comment to the game's Comment shape. */
+/** Map one raw tikwm comment to the game's Comment shape, or null when it is unusable. */
 export function mapComment(raw) {
-  return {
-    id: String(raw.id),
-    username: String(raw.user?.unique_id ?? '').toLowerCase(),
-    text: String(raw.text ?? ''),
-    ts: Number(raw.create_time ?? 0) * 1000,
-  };
+  const ts = Number(raw.create_time) * 1000;
+  const id = raw.id == null ? '' : String(raw.id);
+  const username = String(raw.user?.unique_id ?? '').toLowerCase();
+  if (!id || !username || !Number.isFinite(ts)) return null;
+  return { id, username, text: String(raw.text ?? ''), ts };
 }
 
 /**
@@ -29,12 +28,15 @@ export async function fetchComments(videoUrl, { fetchImpl = fetch, delayMs = 110
     if (!res.ok) throw new Error(`tikwm HTTP ${res.status}`);
     const body = await res.json();
     if (body.code !== 0) throw new Error(`tikwm error: ${body.msg}`);
-    for (const c of body.data?.comments ?? []) out.push(mapComment(c));
-    if (!body.data?.hasMore) break;
+    for (const c of body.data?.comments ?? []) {
+      const mapped = mapComment(c);
+      if (mapped) out.push(mapped);
+    }
+    if (!body.data?.hasMore || body.data.cursor == null) break;
     cursor = body.data.cursor;
     await new Promise((r) => setTimeout(r, delayMs));
   }
-  return out.filter((c) => c.id && c.username);
+  return out;
 }
 
 if (process.argv[2]?.startsWith('http')) {

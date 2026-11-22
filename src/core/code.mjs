@@ -13,7 +13,7 @@ export function codeFor(username) {
   return `CASA-${out}`;
 }
 
-/** Uppercase and keep only A-Z, 0-9 and "-" so case, spaces and emoji never break a match. */
+/** Uppercase and keep only A-Z and 0-9, so case, spaces, any dash and emoji never break a match. */
 export function normalizeText(text) {
-  return String(text ?? '').toUpperCase().replace(/[^A-Z0-9-]/g, '');
+  return String(text ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 }

@@ -14,7 +14,7 @@ test('codeFor has the CASA-XXX format and is stable', () => {
 });
 
 test('normalizeText strips case, spaces and emoji', () => {
-  assert.equal(normalizeText(' casa-7k2 🔥 '), 'CASA-7K2');
+  assert.equal(normalizeText(' casa-7k2 🔥 '), 'CASA7K2');
 });
 
 test('code in any case/spacing/emoji registers the commenter', () => {
@@ -75,4 +75,45 @@ test('houses never overlap', () => {
   const s = processComments(emptyState(), list, DAY);
   const pos = Object.values(s.players).map((p) => `${p.house.x},${p.house.z}`);
   assert.equal(new Set(pos).size, 5);
+});
+
+test('usernames that collide with Object.prototype are handled safely', () => {
+  for (const u of ['constructor', '__proto__', 'toString']) {
+    const s = processComments(emptyState(), [c(u, codeFor(u)), c(u, 'hola', DAY + 1000)], DAY);
+    assert.ok(Object.hasOwn(s.players, u), u);
+    assert.equal(s.players[u].chests.common, 1, u);
+    assert.equal({}.chests, undefined);
+  }
+  const s = processComments(emptyState(), [c('constructor', 'sin codigo')], DAY);
+  assert.deepEqual(Object.keys(s.players), []);
+});
+
+test('comment ids stay deduplicated after many other comments (no count-based eviction)', () => {
+  const reg = c('maria', codeFor('maria'), DAY);
+  const target = c('maria', 'hola', DAY + 1);
+  let s = processComments(emptyState(), [reg, target], DAY);
+  const noise = Array.from({ length: 6000 }, (_, i) => c('maria', `n${i}`, DAY + 2 + i));
+  s = processComments(s, noise, DAY + 100000);
+  const before = s.players.maria.chests.common;
+  s = processComments(s, [target], DAY + 100000);
+  assert.equal(s.players.maria.chests.common, before);
+});
+
+test('a late comment from a previous day does not reset the daily counter', () => {
+  const day0 = DAY - 2 * 86400000;
+  let s = processComments(emptyState(), [c('maria', codeFor('maria'), day0)], DAY);
+  const today = Array.from({ length: DAILY_CHEST_CAP }, (_, i) => c('maria', 'hoy', DAY + i));
+  s = processComments(s, today, DAY);
+  s = processComments(s, [c('maria', 'tarde', DAY - 86400000)], DAY);
+  s = processComments(s, [c('maria', 'extra', DAY + 5000)], DAY);
+  assert.equal(s.players.maria.chests.common, DAILY_CHEST_CAP);
+});
+
+test('codes with spaces or dashes of any kind still register', () => {
+  const raw = codeFor('maria'); // CASA-XXX
+  const x = raw.slice(5);
+  for (const text of [`CASA ${x}`, `casa–${x}`, `casa — ${x}`, `Casa_${x}`]) {
+    const s = processComments(emptyState(), [c('maria', text)], DAY);
+    assert.ok(s.players.maria, text);
+  }
 });
