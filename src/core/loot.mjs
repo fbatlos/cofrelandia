@@ -33,3 +33,11 @@ export function openChest(type, seed) {
   }
   return items;
 }
+
+/** Rebuild an item from its id (`kind-rarity-index`), so inventories can store only ids. */
+export function itemById(id) {
+  const [kind, rarity, idx] = id.split('-');
+  const name = loot.items[kind]?.[rarity]?.[Number(idx)];
+  if (!name) throw new Error(`unknown item id: ${id}`);
+  return { id, name, kind, rarity };
+}
