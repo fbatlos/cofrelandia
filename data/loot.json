@@ -5,30 +5,37 @@
     "event": { "common": 10, "rare": 50, "epic": 30, "legendary": 10 }
   },
   "counts": { "welcome": 3, "common": 1, "event": 2 },
+  "kindWeights": { "weapon": 25, "armor": 25, "accessory": 20, "consumable": 15, "decor": 15 },
   "items": {
     "weapon": {
-      "common": ["Palo afilado", "Honda de tirachinas", "Cuchillo oxidado"],
-      "rare": ["Espada de hierro", "Arco de caza", "Hacha de leñador"],
-      "epic": ["Lanza de tormenta", "Ballesta rúnica", "Maza de fuego"],
-      "legendary": ["Espada del alba", "Arco del dragón", "Martillo del trueno"]
+      "common": [["Palo afilado", "🏏"], ["Honda de pastor", "🪃"], ["Cuchillo oxidado", "🔪"], ["Hoz vieja", "🌙"], ["Garrote", "🪵"], ["Tirachinas", "🎯"], ["Daga de cocina", "🗡️"]],
+      "rare": [["Espada de hierro", "⚔️"], ["Arco de caza", "🏹"], ["Hacha de leñador", "🪓"], ["Lanza corta", "🔱"], ["Mangual", "⛓️"], ["Estoque", "🤺"], ["Ballesta ligera", "🎯"]],
+      "epic": [["Lanza de tormenta", "⚡"], ["Ballesta rúnica", "🏹"], ["Maza de fuego", "🔥"], ["Katana espectral", "🗡️"], ["Guadaña lunar", "🌙"], ["Tridente abisal", "🔱"], ["Látigo de rayos", "⚡"]],
+      "legendary": [["Espada del alba", "🌅"], ["Arco del dragón", "🐉"], ["Martillo del trueno", "🔨"], ["Hoja del vacío", "🌌"], ["Cetro estelar", "🪄"], ["Colmillo del titán", "🦷"], ["Lanza del eclipse", "🌑"]]
     },
     "armor": {
-      "common": ["Gorro de lana", "Chaleco de cuero", "Botas gastadas"],
-      "rare": ["Casco de hierro", "Peto reforzado", "Escudo de roble"],
-      "epic": ["Armadura de escamas", "Escudo espejo", "Capa sombría"],
-      "legendary": ["Coraza solar", "Escudo del titán", "Yelmo del fénix"]
+      "common": [["Gorro de lana", "🧢"], ["Chaleco de cuero", "🦺"], ["Botas gastadas", "👢"], ["Guantes de trapo", "🧤"], ["Capa raída", "🧣"], ["Escudo de madera", "🛡️"], ["Peto de cartón", "📦"]],
+      "rare": [["Casco de hierro", "🪖"], ["Peto reforzado", "🦺"], ["Escudo de roble", "🛡️"], ["Botas de acero", "🥾"], ["Brazales de bronce", "🧤"], ["Capa de viajero", "🧥"], ["Cota de malla", "⛓️"]],
+      "epic": [["Armadura de escamas", "🐟"], ["Escudo espejo", "🪞"], ["Capa sombría", "🦇"], ["Yelmo de cuervo", "🪶"], ["Coraza rúnica", "🔮"], ["Botas del viento", "💨"], ["Guanteletes de lava", "🌋"]],
+      "legendary": [["Coraza solar", "☀️"], ["Escudo del titán", "🛡️"], ["Yelmo del fénix", "🔥"], ["Manto de estrellas", "🌠"], ["Armadura del dragón", "🐲"], ["Botas del trueno", "⚡"], ["Égida eterna", "♾️"]]
+    },
+    "accessory": {
+      "common": [["Anillo de latón", "💍"], ["Pulsera de cuerda", "🧵"], ["Amuleto de hueso", "🦴"], ["Colgante de madera", "📿"], ["Pluma de gorrión", "🪶"], ["Cascabel", "🔔"], ["Moneda agujereada", "🪙"]],
+      "rare": [["Anillo de plata", "💍"], ["Amuleto del zorro", "🦊"], ["Trébol de cuatro hojas", "🍀"], ["Pulsera de jade", "🟢"], ["Brújula vieja", "🧭"], ["Mascota: pollito", "🐤"], ["Gema azul", "💎"]],
+      "epic": [["Anillo del eclipse", "🌘"], ["Amuleto del lobo", "🐺"], ["Ojo de dragón", "🧿"], ["Mascota: gatito místico", "🐱"], ["Reloj de arena", "⏳"], ["Cuerno de unicornio", "🦄"], ["Orbe rúnico", "🔮"]],
+      "legendary": [["Corona del rey", "👑"], ["Corazón de fénix", "❤️‍🔥"], ["Mascota: dragoncito", "🐉"], ["Anillo del infinito", "♾️"], ["Estrella fugaz", "🌠"], ["Llave del cielo", "🗝️"], ["Amuleto del mundo", "🌍"]]
     },
     "consumable": {
-      "common": ["Manzana jugosa", "Venda de tela", "Pan duro"],
-      "rare": ["Poción menor", "Elixir de vigor", "Ración del cazador"],
-      "epic": ["Poción mayor", "Elixir de furia", "Pergamino de escudo"],
-      "legendary": ["Poción de resurrección", "Néctar dorado", "Pergamino de eclipse"]
+      "common": [["Manzana jugosa", "🍎"], ["Venda de tela", "🩹"], ["Pan duro", "🍞"], ["Agua fresca", "💧"], ["Bayas silvestres", "🫐"]],
+      "rare": [["Poción menor", "🧪"], ["Elixir de vigor", "⚗️"], ["Ración del cazador", "🍖"], ["Té de hierbas", "🍵"], ["Miel dorada", "🍯"]],
+      "epic": [["Poción mayor", "🧪"], ["Elixir de furia", "😡"], ["Pergamino de escudo", "📜"], ["Sopa del chef", "🍲"], ["Fruta estelar", "⭐"]],
+      "legendary": [["Poción de resurrección", "✨"], ["Néctar dorado", "🏆"], ["Pergamino de eclipse", "🌑"], ["Manzana de oro", "🍏"], ["Lágrima de fénix", "💧"]]
     },
     "decor": {
-      "common": ["Maceta con flor", "Alfombra simple", "Farol de papel"],
-      "rare": ["Estatua de piedra", "Bandera de clan", "Fuente pequeña"],
-      "epic": ["Jardín flotante", "Torre de vigía", "Portal decorativo"],
-      "legendary": ["Árbol de cristal", "Trono de nubes", "Cascada eterna"]
+      "common": [["Maceta con flor", "🪴"], ["Alfombra simple", "🟫"], ["Farol de papel", "🏮"], ["Buzón", "📮"], ["Banco de madera", "🪑"]],
+      "rare": [["Estatua de piedra", "🗿"], ["Bandera de clan", "🚩"], ["Fuente pequeña", "⛲"], ["Huerto", "🥕"], ["Pozo de deseos", "🪣"]],
+      "epic": [["Jardín flotante", "🌿"], ["Torre de vigía", "🗼"], ["Portal decorativo", "🌀"], ["Molino", "🌬️"], ["Invernadero mágico", "🌸"]],
+      "legendary": [["Árbol de cristal", "🔮"], ["Trono de nubes", "☁️"], ["Cascada eterna", "🌊"], ["Castillo en miniatura", "🏰"], ["Aurora boreal", "🌌"]]
     }
   }
 }

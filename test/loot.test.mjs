@@ -36,5 +36,5 @@ test('common chest rarity frequencies match the table within 3 points', () => {
 test('items have the documented shape', () => {
   const it = openChest('event', 'x')[0];
   assert.ok(it.id && it.name);
-  assert.ok(['weapon', 'armor', 'consumable', 'decor'].includes(it.kind));
+  assert.ok(['weapon', 'armor', 'accessory', 'consumable', 'decor'].includes(it.kind));
 });

@@ -4,7 +4,7 @@ import { openChest, itemById } from '../src/core/loot.mjs';
 
 // Pins determinism across environments: browser replays must match what the bot granted.
 test('golden chest for a known seed', () => {
-  assert.deepEqual(openChest('welcome', 'known').map((i) => i.id), ['armor-rare-1', 'consumable-rare-1', 'armor-rare-1']);
+  assert.deepEqual(openChest('welcome', 'known').map((i) => i.id), ['armor-rare-2', 'accessory-rare-4', 'armor-rare-2']);
 });
 
 test('itemById round-trips every opened item', () => {

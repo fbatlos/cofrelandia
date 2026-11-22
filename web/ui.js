@@ -1,5 +1,6 @@
 import { codeFor } from '../src/core/code.mjs';
-import { openChest, itemById } from '../src/core/loot.mjs';
+import { openChest } from '../src/core/loot.mjs';
+import { playerStats, ownedItems, SLOTS } from '../src/core/equip.mjs';
 
 const RARITY = {
   common: { label: 'Común', color: '#9aa3ad' },
@@ -8,7 +9,8 @@ const RARITY = {
   legendary: { label: 'Legendario', color: '#ffb938' },
 };
 const ORDER = ['legendary', 'epic', 'rare', 'common'];
-const KIND_ICON = { weapon: '⚔️', armor: '🛡️', consumable: '🧪', decor: '🪴' };
+const STAT_LABEL = { atk: 'ATQ', def: 'DEF', hp: 'VIDA', luck: 'SUERTE', heal: 'CURA', charm: 'ENCANTO' };
+const statLine = (stats) => Object.entries(stats).map(([k, v]) => `+${v} ${STAT_LABEL[k] ?? k}`).join(' · ');
 const CHEST = {
   welcome: { label: 'Bienvenida', icon: '🎁' },
   common: { label: 'Comunes', icon: '📦' },
@@ -93,9 +95,9 @@ export function mountUi(root, { world, getState, username = null, demo = null })
       items.forEach((it, i) =>
         drops.append(
           el('div', { className: 'drop', vars: { '--c': RARITY[it.rarity].color, '--i': i } },
-            el('span', { className: 'ico', textContent: KIND_ICON[it.kind] }),
+            el('span', { className: 'ico', textContent: it.icon }),
             el('strong', { textContent: it.name }),
-            el('small', { textContent: RARITY[it.rarity].label })),
+            el('small', { textContent: `${RARITY[it.rarity].label} · ${statLine(it.stats)}` })),
         ),
       );
       done.hidden = false;
@@ -106,9 +108,21 @@ export function mountUi(root, { world, getState, username = null, demo = null })
     const p = getState().players[name];
     shown = name;
     world.select(name);
-    const inv = Object.entries(p.inventory)
-      .map(([id, n]) => ({ ...itemById(id), n }))
-      .sort((a, b) => ORDER.indexOf(a.rarity) - ORDER.indexOf(b.rarity) || a.name.localeCompare(b.name));
+    const stats = playerStats(p.inventory);
+    const equipped = new Set(Object.values(stats.loadout).flat().map((it) => it.id));
+    const inv = ownedItems(p.inventory).sort((a, b) => ORDER.indexOf(a.rarity) - ORDER.indexOf(b.rarity) || a.name.localeCompare(b.name));
+    const slotTile = (def, it) =>
+      it
+        ? el('div', { className: 'tile slot', vars: { '--c': RARITY[it.rarity].color } },
+          el('span', { className: 'ico', textContent: it.icon }),
+          el('span', { className: 'nm', textContent: it.name }),
+          el('small', { className: 'st', textContent: statLine(it.stats) }))
+        : el('div', { className: 'tile slot vacant' },
+          el('span', { className: 'ico', textContent: def.icon }),
+          el('span', { className: 'nm', textContent: `${def.label} vacío` }));
+    const slotTiles = SLOTS.flatMap((def) => Array.from({ length: def.size }, (_, i) => slotTile(def, stats.loadout[def.slot][i])));
+    const mkChip = (icon, label, value) =>
+      el('div', { className: 'chip' }, el('span', { className: 'ico', textContent: icon }), el('strong', { textContent: String(value) }), el('small', { textContent: label }));
     const close = el('button', { className: 'x', textContent: '✕', ariaLabel: 'Cerrar panel' });
     close.onclick = () => {
       panel.classList.remove('open');
@@ -117,23 +131,26 @@ export function mountUi(root, { world, getState, username = null, demo = null })
     };
     const replay = el('button', { className: 'btn ghost', textContent: '🎁 Ver último cofre', disabled: p.log.length === 0 });
     replay.onclick = () => playChest(p.log[p.log.length - 1]);
-    const life = Math.max(0, Math.min(100, Number(p.life) || 0));
     panel.replaceChildren(
       close,
       el('div', { className: 'who' },
         el('div', { className: 'avatar', textContent: name[0]?.toUpperCase() ?? '?' }),
         el('div', {}, el('h3', { textContent: `@${name}` }), el('small', { textContent: name === user ? 'Tu casa' : 'Vecino' }))),
-      el('div', { className: 'life', role: 'img', ariaLabel: `Vida ${life} de 100` }, el('div', { className: 'lifefill', style: `width:${life}%` }), el('span', { textContent: `❤️ ${life}/100` })),
+      el('div', { className: 'life', role: 'img', ariaLabel: `Vida ${stats.life}, poder ${stats.power}` }, el('div', { className: 'lifefill' }), el('span', { textContent: `❤️ ${stats.life} · ⚡ Poder ${stats.power}` })),
+      el('div', { className: 'stats' }, mkChip('⚔️', 'ATQ', stats.atk), mkChip('🛡️', 'DEF', stats.def), mkChip('🍀', 'SUERTE', stats.luck), mkChip('🏠', 'ENCANTO', stats.charm)),
+      el('h4', { textContent: 'Equipado' }),
+      el('div', { className: 'slots' }, ...slotTiles),
       el('div', { className: 'chests' }, ...Object.entries(CHEST).map(([t, c]) =>
         el('div', { className: 'chip' }, el('span', { className: 'ico', textContent: c.icon }), el('strong', { textContent: String(p.chests[t]) }), el('small', { textContent: c.label })))),
       replay,
       el('h4', { textContent: 'Inventario' }),
       inv.length
         ? el('div', { className: 'inv' }, ...inv.map((it) =>
-          el('div', { className: 'tile', vars: { '--c': RARITY[it.rarity].color }, title: `${it.name} · ${RARITY[it.rarity].label}` },
-            el('span', { className: 'ico', textContent: KIND_ICON[it.kind] }),
+          el('div', { className: equipped.has(it.id) ? 'tile eq' : 'tile', vars: { '--c': RARITY[it.rarity].color }, title: `${it.name} · ${RARITY[it.rarity].label} · ${statLine(it.stats)}` },
+            el('span', { className: 'ico', textContent: it.icon }),
             el('span', { className: 'nm', textContent: it.name }),
-            el('b', { textContent: `×${it.n}` }))))
+            el('small', { className: 'st', textContent: statLine(it.stats) }),
+            el('b', { textContent: it.n > 1 ? `×${it.n}` : equipped.has(it.id) ? '✓' : '' }))))
         : el('p', { className: 'empty', textContent: 'Aún no tienes objetos. Comenta en los vídeos para ganar cofres.' }),
     );
     panel.classList.add('open');
