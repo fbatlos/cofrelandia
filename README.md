@@ -9,6 +9,9 @@ Todo gratis: GitHub Pages + GitHub Actions + datos en `data/state.json`.
 3. El bot (Actions, cada 30 min) lee los comentarios, crea la casa y abre un cofre de bienvenida.
 4. Cada comentario nuevo = un cofre común (máx. 10 al día por jugador).
 
+## Cuenta de prueba
+Abre `web/?demo=1` (en la web: https://fbatlos.github.io/pueblo-cofres/web/?demo=1). Entras como `prueba` con 60 vecinos falsos; los botones simulan comentarios, el código de evento `DEMO`, el paso de un día y el reinicio. Todo ocurre en tu navegador y no escribe nada.
+
 ## Tareas habituales
 - **Añadir un vídeo:** pon su URL completa en `config/videos.json` (`{"videos": ["https://www.tiktok.com/@tu_usuario/video/123"]}`).
 - **Código de evento (cofre raro):** añade en `data/state.json` dentro de `events` una entrada `"REGALO-1": "Vídeo especial"` y pide en el vídeo que comenten ese código.

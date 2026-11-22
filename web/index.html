@@ -2,8 +2,12 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#17142a" />
   <title>Pueblo de Cofres</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <script type="importmap">
     { "imports": {
@@ -13,8 +17,9 @@
   </script>
 </head>
 <body>
-  <div id="world"></div>
+  <div id="world" aria-label="Mapa 3D del pueblo"></div>
   <div id="ui"></div>
+  <noscript>Necesitas activar JavaScript para jugar.</noscript>
   <script type="module" src="app.js"></script>
 </body>
 </html>

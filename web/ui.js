@@ -1,112 +1,227 @@
 import { codeFor } from '../src/core/code.mjs';
 import { openChest, itemById } from '../src/core/loot.mjs';
 
-const RARITY_COLOR = { common: '#9aa3ad', rare: '#3b82f6', epic: '#a855f7', legendary: '#f59e0b' };
-const RARITY_ORDER = ['legendary', 'epic', 'rare', 'common'];
-const CHEST_LABEL = { welcome: 'Bienvenida', common: 'Común', event: 'Evento' };
+const RARITY = {
+  common: { label: 'Común', color: '#9aa3ad' },
+  rare: { label: 'Raro', color: '#4da3ff' },
+  epic: { label: 'Épico', color: '#b667ff' },
+  legendary: { label: 'Legendario', color: '#ffb938' },
+};
+const ORDER = ['legendary', 'epic', 'rare', 'common'];
+const KIND_ICON = { weapon: '⚔️', armor: '🛡️', consumable: '🧪', decor: '🪴' };
+const CHEST = {
+  welcome: { label: 'Bienvenida', icon: '🎁' },
+  common: { label: 'Comunes', icon: '📦' },
+  event: { label: 'Evento', icon: '💎' },
+};
 
 // All text goes through textContent: usernames come from TikTok and must never be parsed as HTML.
 function el(tag, props = {}, ...kids) {
+  const { vars, ...rest } = props;
   const e = document.createElement(tag);
-  Object.assign(e, props);
+  Object.assign(e, rest);
+  for (const [k, v] of Object.entries(vars ?? {})) e.style.setProperty(k, v);
   for (const k of kids) e.append(k);
   return e;
 }
 
-/** Mount the HUD. `world` needs focus(username) and onSelect(fn); `getState()` returns the loaded state. */
-export function mountUi(root, { world, getState }) {
-  const bar = el('div', { className: 'bar' }, el('strong', { textContent: 'Pueblo de Cofres' }));
-  const myBtn = el('button', { textContent: 'Mi casa' });
-  const regBtn = el('button', { textContent: 'Registrarme' });
-  bar.append(myBtn, regBtn);
-  const panel = el('div', { className: 'panel hidden' });
-  const modal = el('div', { className: 'modal hidden' });
-  root.append(bar, panel, modal);
+const has = (players, u) => Object.hasOwn(players, u);
 
-  const me = () => localStorage.getItem('pueblo:user') ?? '';
+/**
+ * Mount the HUD.
+ * `world`: focus(username), select(username), setMine(username), onSelect(fn).
+ * `getState()`: current state. `username`: fixed user (demo). `demo`: optional simulator
+ * {comment, event, nextDay, reset}, each returning {entries: LogEntry[], msg: string}.
+ */
+export function mountUi(root, { world, getState, username = null, demo = null }) {
+  let user = username ?? localStorage.getItem('pueblo:user') ?? '';
+  let shown = null;
+
+  const count = el('span', { className: 'pill' });
+  const topbar = el('header', { className: 'topbar glass' }, el('span', { className: 'logo', textContent: '🏘️ Pueblo de Cofres' }), count);
+  const mkBtn = (icon, label, onclick, cls = '') => {
+    const b = el('button', { className: `btn ${cls}`.trim(), onclick }, el('span', { className: 'ico', textContent: icon, ariaHidden: 'true' }), el('span', { textContent: label }));
+    return b;
+  };
+  const myBtn = mkBtn('🏠', 'Mi casa', () => goHome());
+  const joinBtn = mkBtn('✍️', 'Unirme', () => showRegister(), 'ghost');
+  const dock = el('nav', { className: 'dock glass', ariaLabel: 'Menú' }, myBtn, joinBtn);
+  const panel = el('section', { className: 'panel glass', ariaLive: 'polite' });
+  const overlay = el('div', { className: 'overlay hidden', role: 'dialog', ariaModal: 'true', ariaLabel: 'Cofre' });
+  const modal = el('div', { className: 'overlay hidden', role: 'dialog', ariaModal: 'true', ariaLabel: 'Unirme' });
+  const toastEl = el('div', { className: 'toast', role: 'status' });
+  root.append(topbar, panel, dock, overlay, modal, toastEl);
+
+  let toastTimer;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
+  }
+
+  function refresh() {
+    const players = getState().players;
+    count.textContent = `🏠 ${Object.keys(players).length} vecinos`;
+    world.setMine(has(players, user) ? user : null);
+    if (shown && has(players, shown)) renderPlayer(shown);
+  }
+
+  function closeOverlay(node) {
+    node.classList.add('hidden');
+    node.replaceChildren();
+  }
+
+  function playChest(entry) {
+    const items = openChest(entry.type, entry.seed);
+    const best = items.reduce((b, it) => (ORDER.indexOf(it.rarity) < ORDER.indexOf(b) ? it.rarity : b), 'common');
+    const stage = el('div', { className: 'chest-stage' }, el('div', { className: 'chest shake', textContent: CHEST[entry.type].icon }));
+    const drops = el('div', { className: 'drops' });
+    const done = el('button', { className: 'btn', textContent: '¡Genial!', hidden: true });
+    const banner = el('div', { className: 'banner', hidden: true, textContent: best === 'legendary' ? '¡LEGENDARIO!' : best === 'epic' ? '¡ÉPICO!' : '' });
+    done.onclick = () => closeOverlay(overlay);
+    overlay.onclick = (e) => e.target === overlay && closeOverlay(overlay);
+    overlay.style.setProperty('--glow', RARITY[best].color);
+    overlay.replaceChildren(el('div', { className: 'sheet' }, el('h2', { textContent: `Cofre de ${CHEST[entry.type].label.toLowerCase()}` }), stage, banner, drops, done));
+    overlay.classList.remove('hidden');
+    done.focus({ preventScroll: true });
+    setTimeout(() => {
+      stage.classList.add('opened');
+      stage.firstChild.classList.remove('shake');
+      stage.firstChild.textContent = '✨';
+      banner.hidden = !banner.textContent;
+      items.forEach((it, i) =>
+        drops.append(
+          el('div', { className: 'drop', vars: { '--c': RARITY[it.rarity].color, '--i': i } },
+            el('span', { className: 'ico', textContent: KIND_ICON[it.kind] }),
+            el('strong', { textContent: it.name }),
+            el('small', { textContent: RARITY[it.rarity].label })),
+        ),
+      );
+      done.hidden = false;
+    }, 1000);
+  }
+
+  function renderPlayer(name) {
+    const p = getState().players[name];
+    shown = name;
+    world.select(name);
+    const inv = Object.entries(p.inventory)
+      .map(([id, n]) => ({ ...itemById(id), n }))
+      .sort((a, b) => ORDER.indexOf(a.rarity) - ORDER.indexOf(b.rarity) || a.name.localeCompare(b.name));
+    const close = el('button', { className: 'x', textContent: '✕', ariaLabel: 'Cerrar panel' });
+    close.onclick = () => {
+      panel.classList.remove('open');
+      shown = null;
+      world.select(null);
+    };
+    const replay = el('button', { className: 'btn ghost', textContent: '🎁 Ver último cofre', disabled: p.log.length === 0 });
+    replay.onclick = () => playChest(p.log[p.log.length - 1]);
+    const life = Math.max(0, Math.min(100, Number(p.life) || 0));
+    panel.replaceChildren(
+      close,
+      el('div', { className: 'who' },
+        el('div', { className: 'avatar', textContent: name[0]?.toUpperCase() ?? '?' }),
+        el('div', {}, el('h3', { textContent: `@${name}` }), el('small', { textContent: name === user ? 'Tu casa' : 'Vecino' }))),
+      el('div', { className: 'life', role: 'img', ariaLabel: `Vida ${life} de 100` }, el('div', { className: 'lifefill', style: `width:${life}%` }), el('span', { textContent: `❤️ ${life}/100` })),
+      el('div', { className: 'chests' }, ...Object.entries(CHEST).map(([t, c]) =>
+        el('div', { className: 'chip' }, el('span', { className: 'ico', textContent: c.icon }), el('strong', { textContent: String(p.chests[t]) }), el('small', { textContent: c.label })))),
+      replay,
+      el('h4', { textContent: 'Inventario' }),
+      inv.length
+        ? el('div', { className: 'inv' }, ...inv.map((it) =>
+          el('div', { className: 'tile', vars: { '--c': RARITY[it.rarity].color }, title: `${it.name} · ${RARITY[it.rarity].label}` },
+            el('span', { className: 'ico', textContent: KIND_ICON[it.kind] }),
+            el('span', { className: 'nm', textContent: it.name }),
+            el('b', { textContent: `×${it.n}` }))))
+        : el('p', { className: 'empty', textContent: 'Aún no tienes objetos. Comenta en los vídeos para ganar cofres.' }),
+    );
+    panel.classList.add('open');
+  }
+
+  function goHome() {
+    const players = getState().players;
+    if (user && has(players, user)) {
+      world.focus(user);
+      renderPlayer(user);
+    } else showRegister();
+  }
 
   function showRegister() {
-    const input = el('input', { placeholder: 'tu @usuario de TikTok', value: me() });
-    const out = el('div', { className: 'code' });
+    const input = el('input', { placeholder: 'tu usuario de TikTok', value: user, autocomplete: 'off', autocapitalize: 'none', ariaLabel: 'Usuario de TikTok' });
+    const out = el('div', { className: 'steps' });
     const update = () => {
       const u = input.value.trim().replace(/^@/, '').toLowerCase();
       out.replaceChildren();
       if (!u) return;
-      localStorage.setItem('pueblo:user', u);
-      const exists = Object.hasOwn(getState().players, u);
+      user = u;
+      if (!username) localStorage.setItem('pueblo:user', u);
+      world.setMine(has(getState().players, u) ? u : null);
+      if (has(getState().players, u)) {
+        out.append(el('p', { className: 'ok', textContent: '¡Ya tienes casa en el pueblo!' }));
+        return;
+      }
+      const copy = el('button', { className: 'btn', textContent: 'Copiar código' });
+      copy.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(codeFor(u));
+          toast('Código copiado');
+        } catch {
+          toast('Copia el código a mano');
+        }
+      };
       out.append(
-        el('p', { textContent: exists ? '¡Ya tienes casa!' : 'Comenta este código en cualquier vídeo:' }),
+        el('p', { textContent: '2. Comenta este código en cualquier vídeo:' }),
         el('div', { className: 'bigcode', textContent: codeFor(u) }),
-        el('p', { className: 'hint', textContent: 'Comenta directamente en el vídeo (no como respuesta a otro comentario). Tu casa aparece en unos minutos y después cada comentario te da un cofre.' }),
+        copy,
+        el('p', { className: 'hint', textContent: '3. Comenta directamente en el vídeo, no como respuesta a otro comentario. Tu casa aparece en unos minutos y cada comentario después te da un cofre.' }),
       );
     };
     input.addEventListener('input', update);
-    const close = el('button', { textContent: 'Cerrar' });
-    close.onclick = () => modal.classList.add('hidden');
-    modal.replaceChildren(el('div', { className: 'card' }, el('h2', { textContent: 'Consigue tu casa' }), input, out, close));
+    const close = el('button', { className: 'btn ghost', textContent: 'Cerrar' });
+    close.onclick = () => closeOverlay(modal);
+    modal.onclick = (e) => e.target === modal && closeOverlay(modal);
+    modal.replaceChildren(el('div', { className: 'sheet' }, el('h2', { textContent: 'Consigue tu casa' }), el('p', { textContent: '1. Escribe tu usuario de TikTok:' }), input, out, close));
     modal.classList.remove('hidden');
+    input.focus({ preventScroll: true });
     update();
   }
 
-  function playChest(entry, host) {
-    const items = openChest(entry.type, entry.seed);
-    const box = el('div', { className: 'chest shake', textContent: '🎁' });
-    host.replaceChildren(box);
-    setTimeout(() => {
-      box.classList.remove('shake');
-      box.textContent = '✨';
-      host.append(
-        el('div', { className: 'drops' }, ...items.map((it) =>
-          el('span', { className: 'drop', textContent: it.name, style: `border-color:${RARITY_COLOR[it.rarity]}` }))),
-      );
-    }, 900);
+  function runDemo(action) {
+    const { entries, msg } = demo[action]();
+    refresh();
+    if (action === 'reset') shown = null;
+    if (!panel.classList.contains('open') || action === 'reset') renderPlayer('prueba');
+    world.focus('prueba');
+    toast(msg);
+    if (entries.length) playChest(entries.find((e) => e.type === 'event') ?? entries[entries.length - 1]);
   }
 
-  function showPlayer(username) {
-    const p = Object.hasOwn(getState().players, username) ? getState().players[username] : null;
-    if (!p) return null;
-    const inv = Object.entries(p.inventory)
-      .map(([id, n]) => ({ ...itemById(id), n }))
-      .sort((a, b) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity));
-    const stage = el('div', { className: 'stage' });
-    const replay = el('button', { textContent: 'Ver último cofre' });
-    replay.disabled = p.log.length === 0;
-    replay.onclick = () => playChest(p.log[p.log.length - 1], stage);
-    const close = el('button', { textContent: '✕' });
-    close.onclick = () => panel.classList.add('hidden');
-    panel.replaceChildren(
-      close,
-      el('h3', { textContent: `@${username}` }),
-      el('div', { className: 'life' }, el('div', { className: 'lifefill', style: `width:${Math.max(0, Math.min(100, Number(p.life) || 0))}%` })),
-      el('p', { textContent: `Vida ${p.life}/100` }),
-      el('p', { textContent: Object.entries(p.chests).map(([t, n]) => `${CHEST_LABEL[t]}: ${n}`).join(' · ') }),
-      replay,
-      stage,
-      el('h4', { textContent: 'Inventario' }),
-      el('div', { className: 'inv' }, ...(inv.length
-        ? inv.map((it) => el('span', { className: 'item', textContent: `${it.name} ×${it.n}`, style: `border-color:${RARITY_COLOR[it.rarity]}` }))
-        : [el('em', { textContent: 'Vacío' })])),
-    );
-    panel.classList.remove('hidden');
-    return { stage, p };
+  if (demo) {
+    const tray = el('div', { className: 'tray glass' },
+      el('span', { className: 'tag', textContent: '🧪 Prueba' }),
+      mkBtn('💬', 'Comentar', () => runDemo('comment')),
+      mkBtn('💎', 'Evento', () => runDemo('event')),
+      mkBtn('🌅', 'Nuevo día', () => runDemo('nextDay'), 'ghost'),
+      mkBtn('♻️', 'Reiniciar', () => runDemo('reset'), 'ghost'));
+    root.append(tray);
   }
 
-  myBtn.onclick = () => {
-    const u = me();
-    if (u && Object.hasOwn(getState().players, u)) {
-      world.focus(u);
-      showPlayer(u);
-    } else showRegister();
-  };
-  regBtn.onclick = showRegister;
-  world.onSelect(showPlayer);
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    closeOverlay(overlay);
+    closeOverlay(modal);
+  });
+  world.onSelect((u) => renderPlayer(u));
+  refresh();
 
-  // First visit of a registered player: replay their welcome chest.
-  const u = me();
-  if (u && Object.hasOwn(getState().players, u) && !localStorage.getItem(`pueblo:seen:${u}`)) {
-    localStorage.setItem(`pueblo:seen:${u}`, '1');
-    world.focus(u);
-    const r = showPlayer(u);
-    if (r?.p.log[0]) playChest(r.p.log[0], r.stage);
+  // First visit of a registered player (or demo start): replay their welcome chest.
+  const players = getState().players;
+  const seenKey = `pueblo:seen:${user}`;
+  if (user && has(players, user) && (demo || !localStorage.getItem(seenKey))) {
+    if (!demo) localStorage.setItem(seenKey, '1');
+    world.focus(user);
+    renderPlayer(user);
+    if (players[user].log[0]) playChest(players[user].log[0]);
   }
 }
