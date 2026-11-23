@@ -15,6 +15,7 @@ const CHEST = {
   welcome: { label: 'Bienvenida', icon: '🎁' },
   common: { label: 'Comunes', icon: '📦' },
   event: { label: 'Evento', icon: '💎' },
+  prize: { label: 'Premio', icon: '🏆' },
 };
 
 // All text goes through textContent: usernames come from TikTok and must never be parsed as HTML.
@@ -35,19 +36,20 @@ const has = (players, u) => Object.hasOwn(players, u);
  * `getState()`: current state. `username`: fixed user (demo). `demo`: optional simulator
  * {comment, event, nextDay, reset}, each returning {entries: LogEntry[], msg: string}.
  */
-export function mountUi(root, { world, getState, username = null, demo = null }) {
+export function mountUi(root, { world, getState, getSeason = () => null, username = null, demo = null }) {
   let user = username ?? localStorage.getItem('pueblo:user') ?? '';
   let shown = null;
 
   const count = el('span', { className: 'pill' });
-  const topbar = el('header', { className: 'topbar glass' }, el('span', { className: 'logo', textContent: '🏘️ Pueblo de Cofres' }), count);
+  const topbar = el('header', { className: 'topbar glass' }, el('span', { className: 'logo', textContent: '🏘️ Cofrelandia' }), count);
   const mkBtn = (icon, label, onclick, cls = '') => {
     const b = el('button', { className: `btn ${cls}`.trim(), onclick }, el('span', { className: 'ico', textContent: icon, ariaHidden: 'true' }), el('span', { textContent: label }));
     return b;
   };
   const myBtn = mkBtn('🏠', 'Mi casa', () => goHome());
   const joinBtn = mkBtn('✍️', 'Unirme', () => showRegister(), 'ghost');
-  const dock = el('nav', { className: 'dock glass', ariaLabel: 'Menú' }, myBtn, joinBtn);
+  const rankBtn = mkBtn('🏆', 'Ranking', () => showRanking(), 'ghost');
+  const dock = el('nav', { className: 'dock glass', ariaLabel: 'Menú' }, myBtn, rankBtn, joinBtn);
   const panel = el('section', { className: 'panel glass', ariaLive: 'polite' });
   const overlay = el('div', { className: 'overlay hidden', role: 'dialog', ariaModal: 'true', ariaLabel: 'Cofre' });
   const modal = el('div', { className: 'overlay hidden', role: 'dialog', ariaModal: 'true', ariaLabel: 'Unirme' });
@@ -141,7 +143,7 @@ export function mountUi(root, { world, getState, username = null, demo = null })
       el('h4', { textContent: 'Equipado' }),
       el('div', { className: 'slots' }, ...slotTiles),
       el('div', { className: 'chests' }, ...Object.entries(CHEST).map(([t, c]) =>
-        el('div', { className: 'chip' }, el('span', { className: 'ico', textContent: c.icon }), el('strong', { textContent: String(p.chests[t]) }), el('small', { textContent: c.label })))),
+        el('div', { className: 'chip' }, el('span', { className: 'ico', textContent: c.icon }), el('strong', { textContent: String(p.chests[t] ?? 0) }), el('small', { textContent: c.label })))),
       replay,
       el('h4', { textContent: 'Inventario' }),
       inv.length
@@ -204,6 +206,86 @@ export function mountUi(root, { world, getState, username = null, demo = null })
     update();
   }
 
+  const MEDAL = ['🥇', '🥈', '🥉'];
+
+  function playReplay(match) {
+    const hpBar = (f) => {
+      const fill = el('div', { className: 'hpfill' });
+      return { fill, node: el('div', { className: 'hp' }, el('small', { textContent: `${f.name} · ❤️ ${f.life}` }), el('div', { className: 'hpbar' }, fill)) };
+    };
+    const A = hpBar(match.a);
+    const B = hpBar(match.b);
+    const setHp = (bar, f, hp) => { bar.fill.style.width = `${Math.max(0, (hp / f.life) * 100)}%`; };
+    setHp(A, match.a, match.a.life);
+    setHp(B, match.b, match.b.life);
+    const log = el('div', { className: 'battlelog', ariaLive: 'polite' });
+    const verdict = el('p', { className: 'banner', hidden: true });
+    const close = el('button', { className: 'btn', textContent: 'Cerrar' });
+    let timer = null;
+    close.onclick = () => { clearInterval(timer); closeOverlay(overlay); };
+    overlay.onclick = (e) => { if (e.target === overlay) close.onclick(); };
+    overlay.style.setProperty('--glow', '#ff5d73');
+    overlay.replaceChildren(el('div', { className: 'sheet' },
+      el('h2', { textContent: '⚔️ Combate destacado' }),
+      el('div', { className: 'duel' }, A.node, el('span', { className: 'vs', textContent: 'VS' }), B.node),
+      log, verdict, close));
+    overlay.classList.remove('hidden');
+    let i = 0;
+    timer = setInterval(() => {
+      const s = match.rounds[i++];
+      if (!s) {
+        clearInterval(timer);
+        verdict.textContent = match.winner === 'draw' ? '🤝 Empate' : `🏆 Gana @${match.winner === 'a' ? match.a.name : match.b.name}`;
+        verdict.hidden = false;
+        return;
+      }
+      const who = s.actor === 'a' ? match.a.name : match.b.name;
+      setHp(A, match.a, s.hpA);
+      setHp(B, match.b, s.hpB);
+      const text = s.kind === 'heal' ? `💚 ${who} se cura (+${s.amount})` : s.kind === 'crit' ? `💥 ${who} ¡crítico! (-${s.amount})` : `⚔️ ${who} golpea (-${s.amount})`;
+      log.append(el('div', { textContent: text }));
+      log.scrollTop = log.scrollHeight;
+    }, 450);
+  }
+
+  function showRanking() {
+    const season = getSeason();
+    const rows = season?.table ?? [];
+    const close = el('button', { className: 'btn ghost', textContent: 'Cerrar' });
+    close.onclick = () => closeOverlay(modal);
+    modal.onclick = (e) => { if (e.target === modal) closeOverlay(modal); };
+    const sheet = el('div', { className: 'sheet wide' }, el('h2', { textContent: season?.week ? `🏆 Ranking ${season.week}` : '🏆 Ranking' }));
+    if (!rows.length) {
+      sheet.append(el('p', { className: 'empty', textContent: 'Aún no ha habido batallas. La próxima es el domingo a las 20:00 UTC: cuantos mejores objetos tengas, más posibilidades de ganar.' }));
+    } else {
+      const rowEl = (r) => el('li', { className: r.username === user ? 'row mine' : 'row' },
+        el('span', { className: 'pos', textContent: MEDAL[r.rank - 1] ?? `#${r.rank}` }),
+        el('span', { className: 'who2', textContent: `@${r.username}` }),
+        el('span', { className: 'pts', textContent: `${r.points} pts · ${r.wins}V` }),
+        el('small', { textContent: `⚡${r.power}` }));
+      const list = el('ol', { className: 'rank' }, ...rows.slice(0, 10).map(rowEl));
+      sheet.append(list);
+      const mineRow = rows.find((r) => r.username === user);
+      if (mineRow && mineRow.rank > 10) sheet.append(el('ol', { className: 'rank' }, rowEl(mineRow)));
+      if (user && !mineRow) sheet.append(el('p', { className: 'hint', textContent: 'Tu casa aún no está en este ranking.' }));
+      if (season.featured?.length) {
+        const watch = el('button', { className: 'btn', textContent: '⚔️ Ver combate destacado' });
+        watch.onclick = () => { closeOverlay(modal); playReplay(season.featured[0]); };
+        sheet.append(watch);
+      }
+      if (season.beauty?.length) {
+        sheet.append(el('h4', { textContent: 'Casas más bonitas' }),
+          el('ol', { className: 'rank' }, ...season.beauty.slice(0, 3).map((b, i) =>
+            el('li', { className: 'row' }, el('span', { className: 'pos', textContent: MEDAL[i] }), el('span', { className: 'who2', textContent: `@${b.username}` }), el('span', { className: 'pts', textContent: `🏠 ${b.charm}` })))));
+      }
+      const past = (season.history ?? []).slice(-6, -1).reverse();
+      if (past.length) sheet.append(el('h4', { textContent: 'Campeones anteriores' }), el('p', { className: 'hint', textContent: past.map((h) => `${h.week}: @${h.champion}`).join(' · ') }));
+    }
+    sheet.append(el('p', { className: 'hint', textContent: 'Premios: 🥇 3 cofres de premio · 🥈🥉 2 · top 10: 1 · casas más bonitas: 1.' }), close);
+    modal.replaceChildren(sheet);
+    modal.classList.remove('hidden');
+  }
+
   function runDemo(action) {
     const { entries, msg } = demo[action]();
     refresh();
@@ -211,6 +293,7 @@ export function mountUi(root, { world, getState, username = null, demo = null })
     if (!panel.classList.contains('open') || action === 'reset') renderPlayer('prueba');
     world.focus('prueba');
     toast(msg);
+    if (action === 'battle') showRanking();
     if (entries.length) playChest(entries.find((e) => e.type === 'event') ?? entries[entries.length - 1]);
   }
 
@@ -219,6 +302,7 @@ export function mountUi(root, { world, getState, username = null, demo = null })
       el('span', { className: 'tag', textContent: '🧪 Prueba' }),
       mkBtn('💬', 'Comentar', () => runDemo('comment')),
       mkBtn('💎', 'Evento', () => runDemo('event')),
+      mkBtn('⚔️', 'Batalla', () => runDemo('battle')),
       mkBtn('🌅', 'Nuevo día', () => runDemo('nextDay'), 'ghost'),
       mkBtn('♻️', 'Reiniciar', () => runDemo('reset'), 'ghost'));
     root.append(tray);

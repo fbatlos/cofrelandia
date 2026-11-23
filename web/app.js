@@ -2,11 +2,13 @@ import { createWorld } from './map.js';
 import { mountUi } from './ui.js';
 import { emptyState, processComments } from '../src/core/state.mjs';
 import { codeFor } from '../src/core/code.mjs';
+import { runSeason, applySeason } from '../src/core/battle.mjs';
 
 const params = new URLSearchParams(location.search);
 const DAY = 86400000;
 const world = createWorld(document.getElementById('world'));
 let state;
+let season = null;
 let demo = null;
 
 if (params.has('demo')) {
@@ -50,7 +52,19 @@ if (params.has('demo')) {
       clock += DAY;
       return { entries: [], msg: 'Ha pasado un día: el contador diario vuelve a 0' };
     },
+    battle: () => {
+      const week = `demo-${(season?.history.length ?? 0) + 1}`;
+      const result = runSeason(state.players, week);
+      const history = [...(season?.history ?? []), { week, champion: result.table[0].username, beauty: result.beauty[0]?.username ?? null, players: result.table.length }];
+      season = { ...result, players: result.table.length, history };
+      state = applySeason(state, season);
+      world.setPlayers(state.players);
+      const me = season.table.find((r) => r.username === 'prueba');
+      const prizes = state.players.prueba.chests.prize ?? 0;
+      return { entries: [], msg: `Batalla simulada: quedas #${me.rank} de ${season.table.length}${prizes ? ` · cofres de premio: ${prizes}` : ''}` };
+    },
     reset: () => {
+      season = null;
       build();
       return { entries: state.players.prueba.log, msg: 'Cuenta de prueba reiniciada' };
     },
@@ -58,7 +72,8 @@ if (params.has('demo')) {
 } else {
   state = await (await fetch(params.get('state') ?? '../data/state.json', { cache: 'no-cache' })).json();
   world.setPlayers(state.players);
+  season = await fetch('../data/season.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 }
 
-mountUi(document.getElementById('ui'), { world, getState: () => state, username: demo ? 'prueba' : null, demo });
+mountUi(document.getElementById('ui'), { world, getState: () => state, getSeason: () => season, username: demo ? 'prueba' : null, demo });
 window.__world = world;

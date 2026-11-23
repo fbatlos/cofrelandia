@@ -1,0 +1,31 @@
+name: battle
+on:
+  schedule:
+    - cron: '0 20 * * 0'
+  workflow_dispatch:
+concurrency: bot
+permissions:
+  contents: write
+  actions: write
+jobs:
+  battle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm test
+      - run: node bot/season-cli.mjs
+      - name: Commit results and redeploy site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "cofrelandia-bot"
+          git config user.email "cofrelandia-bot@users.noreply.github.com"
+          git add data/state.json data/season.json
+          if ! git diff --cached --quiet; then
+            git commit -m "battle: weekly results"
+            git pull --rebase
+            git push
+            gh workflow run pages.yml
+          fi

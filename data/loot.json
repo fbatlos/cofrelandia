@@ -2,9 +2,10 @@
   "tables": {
     "welcome": { "rare": 60, "epic": 30, "legendary": 10 },
     "common": { "common": 70, "rare": 22, "epic": 7, "legendary": 1 },
-    "event": { "common": 10, "rare": 50, "epic": 30, "legendary": 10 }
+    "event": { "common": 10, "rare": 50, "epic": 30, "legendary": 10 },
+    "prize": { "epic": 55, "legendary": 45 }
   },
-  "counts": { "welcome": 3, "common": 1, "event": 2 },
+  "counts": { "welcome": 3, "common": 1, "event": 2, "prize": 3 },
   "kindWeights": { "weapon": 25, "armor": 25, "accessory": 20, "consumable": 15, "decor": 15 },
   "items": {
     "weapon": {
